@@ -16,8 +16,8 @@ app.get("/api/health", (req, res) => {
 });
 
 app.use((err, req, res, next) => {
-  console.error("Server error:", err.message);
-  res.status(500).json({ error: err.message });
+  console.error(`[${new Date().toISOString()}] Error:`, err.message, err.stack);
+  res.status(500).json({ error: "Internal server error" });
 });
 
 const PORT = process.env.PORT || 3001;
