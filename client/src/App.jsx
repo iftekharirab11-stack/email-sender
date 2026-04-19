@@ -842,12 +842,31 @@ const PROVIDERS = [
   { id:"gemini",   label:"Gemini",       models:["gemini-1.5-flash","gemini-1.5-pro","gemini-pro"],            hint:"aistudio.google.com/app/apikey" },
 ];
 
-function SettingsPage({ aiConfig, setAiConfig, T }) {
+function SettingsPage({ aiConfig, setAiConfig, emailSetup, loadEmailSetup, T }) {
   const [local,   setLocal]   = useState({...aiConfig});
   const [saved,   setSaved]   = useState(false);
   const [showKey, setShowKey] = useState(false);
+  const [provider, setProvider] = useState("gmail");
+  const [emailUser, setEmailUser] = useState("");
+  const [emailPass, setEmailPass] = useState("");
+  const [smtpHost, setSmtpHost] = useState("smtp.gmail.com");
+  const [smtpPort, setSmtpPort] = useState("465");
+  const [smtpSecure, setSmtpSecure] = useState(true);
+  const [connectLoading, setConnectLoading] = useState(false);
+  const [disconnectLoading, setDisconnectLoading] = useState(false);
+  const [connectMessage, setConnectMessage] = useState("");
 
   const prov = PROVIDERS.find(p=>p.id===local.provider) || PROVIDERS[0];
+
+  useEffect(() => {
+    if (emailSetup?.config) {
+      setProvider(emailSetup.config.provider || "gmail");
+      setEmailUser(emailSetup.config.user || "");
+      setSmtpHost(emailSetup.config.host || "smtp.gmail.com");
+      setSmtpPort(String(emailSetup.config.port || 465));
+      setSmtpSecure(!!emailSetup.config.secure);
+    }
+  }, [emailSetup]);
 
   function save() {
     setAiConfig({...local});
@@ -855,12 +874,111 @@ function SettingsPage({ aiConfig, setAiConfig, T }) {
     setTimeout(()=>setSaved(false), 2500);
   }
 
+  async function connectEmail() {
+    setConnectMessage("");
+    setConnectLoading(true);
+    try {
+      const payload = {
+        provider,
+        user: emailUser,
+        pass: emailPass,
+        host: provider === "gmail" ? undefined : smtpHost,
+        port: provider === "gmail" ? undefined : Number(smtpPort),
+        secure: provider === "gmail" ? true : smtpSecure,
+      };
+      await api("emails/setup/connect", payload);
+      setConnectMessage("Connected successfully.");
+      setEmailPass("");
+      loadEmailSetup();
+    } catch (err) {
+      setConnectMessage(err.message);
+    }
+    setConnectLoading(false);
+  }
+
+  async function disconnectEmail() {
+    setConnectMessage("");
+    setDisconnectLoading(true);
+    try {
+      await api("emails/setup/disconnect", {});
+      setConnectMessage("Disconnected successfully.");
+      loadEmailSetup();
+    } catch (err) {
+      setConnectMessage(err.message);
+    }
+    setDisconnectLoading(false);
+  }
+
   return (
     <div style={{ paddingBottom:40 }}>
-      <PageHeader T={T} title="Settings" subtitle="Configure your AI provider and preferences"/>
-      <div style={{ padding:"24px 28px",maxWidth:640,display:"flex",flexDirection:"column",gap:20 }}>
+      <PageHeader T={T} title="Settings" subtitle="Configure your AI provider and email sending setup"/>
+      <div style={{ padding:"24px 28px",maxWidth:760,display:"flex",flexDirection:"column",gap:20 }}>
 
-        {/* Provider */}
+        {/* Email Setup */}
+        <div style={{ background:T.surface,border:`1px solid ${T.border}`,borderRadius:12,padding:"20px" }}>
+          <div style={{ fontSize:13,fontWeight:600,color:T.text,marginBottom:12 }}>Email Sending Setup</div>
+          <div style={{ fontSize:12,color:T.text3,marginBottom:16, lineHeight:1.6 }}>
+            Connect a mail provider to send real email from localhost. Gmail uses SMTP and requires an app password when 2FA is enabled.
+          </div>
+
+          <div style={{ display:"flex",gap:10,flexWrap:"wrap",marginBottom:16 }}>
+            {[
+              { id:"gmail", label:"Gmail" },
+              { id:"smtp", label:"SMTP" },
+            ].map(option => (
+              <button key={option.id} onClick={() => setProvider(option.id)} style={{
+                padding:"10px 14px",borderRadius:10,border: provider===option.id ? `1.5px solid ${ACCENT}` : `1px solid ${T.border}`,
+                background: provider===option.id ? ACCENT+"15" : T.surface2,
+                color: provider===option.id ? ACCENT : T.text2, cursor:"pointer"
+              }}>
+                {option.label}
+              </button>
+            ))}
+          </div>
+
+          <div style={{ display:"grid",gridTemplateColumns:"1fr 1fr",gap:14,marginBottom:14 }}>
+            <Field T={T} label="Email Address" value={emailUser} onChange={e=>setEmailUser(e.target.value)} placeholder="you@example.com"/>
+            <Field T={T} label="Password / App Password" value={emailPass} onChange={e=>setEmailPass(e.target.value)} placeholder="Email password or app password" type="password"/>
+          </div>
+
+          {provider === "smtp" && (
+            <div style={{ display:"grid",gridTemplateColumns:"1fr 1fr",gap:14,marginBottom:14 }}>
+              <Field T={T} label="SMTP Host" value={smtpHost} onChange={e=>setSmtpHost(e.target.value)} placeholder="smtp.example.com"/>
+              <Field T={T} label="SMTP Port" value={smtpPort} onChange={e=>setSmtpPort(e.target.value)} placeholder="587" type="number"/>
+            </div>
+          )}
+
+          {provider === "smtp" && (
+            <div style={{ display:"flex",alignItems:"center",gap:10,marginBottom:14 }}>
+              <label style={{ fontSize:11,fontWeight:700,color:T.text2,letterSpacing:0.5 }}>Secure (TLS/SSL)</label>
+              <button onClick={()=>setSmtpSecure(s=>!s)} style={{
+                width:40,height:22,borderRadius:11,border:"none",cursor:"pointer",
+                background:smtpSecure ? ACCENT : T.border, position:"relative",flexShrink:0
+              }}>
+                <div style={{ width:16,height:16,borderRadius:"50%",background:"white",
+                  position:"absolute",top:3,left:smtpSecure?21:3,transition:"left 0.2s" }}/>
+              </button>
+              <span style={{ fontSize:12,color:T.text2 }}>{smtpSecure ? "TLS/SSL" : "Plain"}</span>
+            </div>
+          )}
+
+          <div style={{ display:"flex",gap:10,flexWrap:"wrap",alignItems:"center" }}>
+            <Btn primary onClick={connectEmail} loading={connectLoading} disabled={!emailUser||!emailPass || (provider === "smtp" && (!smtpHost||!smtpPort))}>Connect</Btn>
+            <Btn danger onClick={disconnectEmail} loading={disconnectLoading} disabled={!emailSetup?.connected}>Disconnect</Btn>
+            <span style={{ fontSize:12,color:T.text3 }}>
+              Status: {emailSetup?.connected ? "Connected" : "Not connected"}
+              {emailSetup?.connected && emailSetup.config ? ` — ${emailSetup.config.user}` : ""}
+            </span>
+          </div>
+
+          {connectMessage && (
+            <div style={{ marginTop:14, padding:"12px 14px", borderRadius:10, background:T.surface2, color:connectMessage.startsWith("Error") ? "#b91c1c" : "#166534" }}>
+              {connectMessage}
+            </div>
+          )}
+        </div>
+
+        {/* AI Provider */}
         <div style={{ background:T.surface,border:`1px solid ${T.border}`,borderRadius:12,padding:"20px" }}>
           <div style={{ fontSize:13,fontWeight:600,color:T.text,marginBottom:16 }}>AI Provider</div>
           <div style={{ display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:16 }}>
@@ -933,18 +1051,6 @@ function SettingsPage({ aiConfig, setAiConfig, T }) {
           ))}
         </div>
 
-        {/* Gmail placeholder */}
-        <div style={{ background:T.surface,border:`1px solid ${T.border}`,borderRadius:12,padding:"20px" }}>
-          <div style={{ fontSize:13,fontWeight:600,color:T.text,marginBottom:4 }}>Gmail Integration</div>
-          <div style={{ fontSize:12,color:T.text3,marginBottom:14,lineHeight:1.6 }}>
-            Connect Gmail for real sending and inbox sync. Paste your Google OAuth Client ID to get started.
-          </div>
-          <Field T={T} label="Gmail OAuth Client ID" value={local.gmailClientId||""} onChange={e=>setLocal(l=>({...l,gmailClientId:e.target.value}))} placeholder="Your Google Cloud OAuth client ID…"/>
-          <div style={{ marginTop:12 }}>
-            <Btn disabled full>Connect Gmail (coming soon)</Btn>
-          </div>
-        </div>
-
         {/* Save */}
         <div style={{ display:"flex",gap:12,alignItems:"center" }}>
           <Btn primary onClick={save} full>Save Settings</Btn>
@@ -968,14 +1074,27 @@ export default function App() {
   const [emails,    setEmails]    = useState(FALLBACK_EMAILS);
   const [scheduled, setScheduled] = useState([]);
   const [aiConfig,  setAiConfig]  = useState(DEFAULT_CONFIG);
+  const [emailSetup, setEmailSetup] = useState({ connected:false, config:null });
   const [dark,      setDark]      = useState(false);
 
-  // Try to load emails from backend on mount
+  async function loadEmailSetup() {
+    try {
+      const res = await fetch("/api/emails/setup");
+      const data = await res.json();
+      setEmailSetup(data);
+    } catch (err) {
+      setEmailSetup({ connected:false, config:null });
+    }
+  }
+
+  // Try to load emails and email setup state from backend on mount
   useEffect(()=>{
     fetch("/api/emails")
       .then(r=>r.json())
       .then(d=>{ if(d.emails?.length) setEmails(d.emails); })
       .catch(()=>{}); // silently use fallback data
+
+    loadEmailSetup();
   }, []);
 
   const T = dark ? DARK : LIGHT;
@@ -1005,7 +1124,7 @@ export default function App() {
           {view==="inbox"     && <InboxPage emails={emails} setEmails={setEmails} aiConfig={aiConfig} T={T}/>}
           {view==="compose"   && <ComposePage aiConfig={aiConfig} T={T}/>}
           {view==="scheduler" && <SchedulerPage scheduled={scheduled} setScheduled={setScheduled} aiConfig={aiConfig} T={T}/>}
-          {view==="settings"  && <SettingsPage aiConfig={aiConfig} setAiConfig={setAiConfig} T={T}/>}
+          {view==="settings"  && <SettingsPage aiConfig={aiConfig} setAiConfig={setAiConfig} emailSetup={emailSetup} loadEmailSetup={loadEmailSetup} T={T}/>}
         </main>
       </div>
     </>
