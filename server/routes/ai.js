@@ -7,7 +7,7 @@ const router  = express.Router();
 // ─── Universal AI Caller ──────────────────────────────────────────────────────
 // Supports: OpenAI, Groq, Together AI (all OpenAI-compatible), Google Gemini
 async function callAIProvider(userMessage, systemPrompt, config) {
-  const { fetch } = await import("node-fetch");
+  const fetch = global.fetch || (await import("node-fetch")).default;
 
   const provider = config.provider || process.env.AI_PROVIDER || "openai";
   const model    = config.model    || process.env.AI_MODEL    || "gpt-4o-mini";
