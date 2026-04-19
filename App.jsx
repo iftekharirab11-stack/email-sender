@@ -838,6 +838,7 @@ const PROVIDERS = [
   { id:"openai",   label:"OpenAI",       models:["gpt-4o","gpt-4o-mini","gpt-4-turbo"],                       hint:"platform.openai.com/api-keys" },
   { id:"groq",     label:"Groq (Free)",  models:["llama-3.3-70b-versatile","mixtral-8x7b-32768","gemma2-9b-it"],hint:"console.groq.com/keys" },
   { id:"together", label:"Together AI",  models:["meta-llama/Llama-3-70b-chat-hf","mistralai/Mixtral-8x7B"],  hint:"api.together.xyz" },
+  { id:"mistral",  label:"Mistral AI",   models:["mistral-small-latest","mistral-medium-latest","mistral-large-latest"],hint:"console.mistral.ai" },
   { id:"gemini",   label:"Gemini",       models:["gemini-1.5-flash","gemini-1.5-pro","gemini-pro"],            hint:"aistudio.google.com/app/apikey" },
 ];
 

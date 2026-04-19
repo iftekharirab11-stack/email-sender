@@ -18,7 +18,8 @@ async function callAIProvider(userMessage, systemPrompt, config) {
     process.env.OPENAI_API_KEY ||
     process.env.GROQ_API_KEY   ||
     process.env.GEMINI_API_KEY ||
-    process.env.TOGETHER_API_KEY;
+    process.env.TOGETHER_API_KEY ||
+    process.env.MISTRAL_API_KEY;
 
   if (!apiKey) {
     throw new Error(
@@ -26,12 +27,13 @@ async function callAIProvider(userMessage, systemPrompt, config) {
     );
   }
 
-  // ── OpenAI / Groq / Together (OpenAI-compatible format) ──────────────────
-  if (["openai", "groq", "together"].includes(provider)) {
+  // ── OpenAI / Groq / Together / Mistral (OpenAI-compatible format) ──────────────────
+  if (["openai", "groq", "together", "mistral"].includes(provider)) {
     const BASE_URLS = {
       openai:   "https://api.openai.com/v1/chat/completions",
       groq:     "https://api.groq.com/openai/v1/chat/completions",
       together: "https://api.together.xyz/v1/chat/completions",
+      mistral: "https://api.mistral.ai/v1/chat/completions",
     };
 
     const res = await fetch(BASE_URLS[provider], {
@@ -77,7 +79,7 @@ async function callAIProvider(userMessage, systemPrompt, config) {
     return data.candidates[0].content.parts[0].text;
   }
 
-  throw new Error(`Unknown provider: "${provider}". Use openai, groq, together, or gemini.`);
+  throw new Error(`Unknown provider: "${provider}". Use openai, groq, together, mistral, or gemini.`);
 }
 
 // ─── POST /api/ai/chat ────────────────────────────────────────────────────────

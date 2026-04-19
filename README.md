@@ -77,11 +77,15 @@ GEMINI_API_KEY=AIza...your-key...
 
 # Option D — Together AI
 TOGETHER_API_KEY=...your-key...
+
+# Option E — Mistral AI (FREE tier available)
+MISTRAL_API_KEY=...your-key...
 ```
 
 **Where to get free API keys:**
 - Groq (free): https://console.groq.com/keys
 - Gemini (free tier): https://aistudio.google.com/app/apikey
+- Mistral (free tier): https://console.mistral.ai
 - OpenAI: https://platform.openai.com/api-keys
 
 ---
@@ -101,7 +105,7 @@ Open your browser: **http://localhost:5173**
 ### Step 4 — Set your provider in the app
 
 1. Go to **Settings** tab in the app
-2. Select your provider (OpenAI / Groq / Gemini / Together)
+2. Select your provider (OpenAI / Groq / Mistral / Gemini / Together)
 3. Paste your API key
 4. Select the model
 5. Click **Save Settings**

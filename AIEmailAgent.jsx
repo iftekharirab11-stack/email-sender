@@ -69,11 +69,12 @@ async function callAI(userMessage, systemPrompt, config) {
 
   if (!apiKey) throw new Error("No API key set. Go to Settings → paste your key.");
 
-  // OpenAI / Groq / Together (all use OpenAI-compatible format)
-  if (provider === "openai" || provider === "groq" || provider === "together") {
+  // OpenAI / Groq / Together / Mistral (all use OpenAI-compatible format)
+  if (provider === "openai" || provider === "groq" || provider === "together" || provider === "mistral") {
     const baseUrl =
       provider === "groq"     ? "https://api.groq.com/openai/v1/chat/completions" :
       provider === "together" ? "https://api.together.xyz/v1/chat/completions" :
+      provider === "mistral"  ? "https://api.mistral.ai/v1/chat/completions" :
                                 "https://api.openai.com/v1/chat/completions";
 
     const res = await fetch(baseUrl, {
@@ -1092,6 +1093,7 @@ const PROVIDERS = [
   { id: "openai",   label: "OpenAI",        models: ["gpt-4o", "gpt-4o-mini", "gpt-4-turbo"], hint: "platform.openai.com/api-keys" },
   { id: "groq",     label: "Groq",          models: ["llama-3.3-70b-versatile", "mixtral-8x7b-32768", "gemma2-9b-it"], hint: "console.groq.com/keys" },
   { id: "together", label: "Together AI",   models: ["meta-llama/Llama-3-70b-chat-hf", "mistralai/Mixtral-8x7B"], hint: "api.together.xyz" },
+  { id: "mistral",  label: "Mistral AI",   models: ["mistral-small-latest", "mistral-medium-latest", "mistral-large-latest"], hint: "console.mistral.ai" },
   { id: "gemini",   label: "Google Gemini", models: ["gemini-1.5-flash", "gemini-1.5-pro", "gemini-pro"], hint: "aistudio.google.com/app/apikey" },
 ];
 
