@@ -846,12 +846,10 @@ function SettingsPage({ aiConfig, setAiConfig, emailSetup, loadEmailSetup, T }) 
   const [local,   setLocal]   = useState({...aiConfig});
   const [saved,   setSaved]   = useState(false);
   const [showKey, setShowKey] = useState(false);
-  const [provider, setProvider] = useState("gmail");
-  const [emailUser, setEmailUser] = useState("");
-  const [emailPass, setEmailPass] = useState("");
-  const [smtpHost, setSmtpHost] = useState("smtp.gmail.com");
-  const [smtpPort, setSmtpPort] = useState("465");
-  const [smtpSecure, setSmtpSecure] = useState(true);
+  const [gmailClientId, setGmailClientId] = useState("");
+  const [gmailClientSecret, setGmailClientSecret] = useState("");
+  const [gmailRefreshToken, setGmailRefreshToken] = useState("");
+  const [gmailUserEmail, setGmailUserEmail] = useState("");
   const [connectLoading, setConnectLoading] = useState(false);
   const [disconnectLoading, setDisconnectLoading] = useState(false);
   const [connectMessage, setConnectMessage] = useState("");
@@ -860,11 +858,7 @@ function SettingsPage({ aiConfig, setAiConfig, emailSetup, loadEmailSetup, T }) 
 
   useEffect(() => {
     if (emailSetup?.config) {
-      setProvider(emailSetup.config.provider || "gmail");
-      setEmailUser(emailSetup.config.user || "");
-      setSmtpHost(emailSetup.config.host || "smtp.gmail.com");
-      setSmtpPort(String(emailSetup.config.port || 465));
-      setSmtpSecure(!!emailSetup.config.secure);
+      setGmailUserEmail(emailSetup.config.userEmail || "");
     }
   }, [emailSetup]);
 
@@ -879,16 +873,14 @@ function SettingsPage({ aiConfig, setAiConfig, emailSetup, loadEmailSetup, T }) 
     setConnectLoading(true);
     try {
       const payload = {
-        provider,
-        user: emailUser,
-        pass: emailPass,
-        host: provider === "gmail" ? undefined : smtpHost,
-        port: provider === "gmail" ? undefined : Number(smtpPort),
-        secure: provider === "gmail" ? true : smtpSecure,
+        clientId: gmailClientId,
+        clientSecret: gmailClientSecret,
+        refreshToken: gmailRefreshToken,
+        userEmail: gmailUserEmail,
       };
       await api("emails/setup/connect", payload);
       setConnectMessage("Connected successfully.");
-      setEmailPass("");
+      setGmailClientId(""); setGmailClientSecret(""); setGmailRefreshToken("");
       loadEmailSetup();
     } catch (err) {
       setConnectMessage(err.message);
@@ -914,60 +906,29 @@ function SettingsPage({ aiConfig, setAiConfig, emailSetup, loadEmailSetup, T }) 
       <PageHeader T={T} title="Settings" subtitle="Configure your AI provider and email sending setup"/>
       <div style={{ padding:"24px 28px",maxWidth:760,display:"flex",flexDirection:"column",gap:20 }}>
 
-        {/* Email Setup */}
+        {/* Gmail API Setup */}
         <div style={{ background:T.surface,border:`1px solid ${T.border}`,borderRadius:12,padding:"20px" }}>
-          <div style={{ fontSize:13,fontWeight:600,color:T.text,marginBottom:12 }}>Email Sending Setup</div>
+          <div style={{ fontSize:13,fontWeight:600,color:T.text,marginBottom:12 }}>Gmail API Setup</div>
           <div style={{ fontSize:12,color:T.text3,marginBottom:16, lineHeight:1.6 }}>
-            Connect a mail provider to send real email from localhost. Gmail uses SMTP and requires an app password when 2FA is enabled.
-          </div>
-
-          <div style={{ display:"flex",gap:10,flexWrap:"wrap",marginBottom:16 }}>
-            {[
-              { id:"gmail", label:"Gmail" },
-              { id:"smtp", label:"SMTP" },
-            ].map(option => (
-              <button key={option.id} onClick={() => setProvider(option.id)} style={{
-                padding:"10px 14px",borderRadius:10,border: provider===option.id ? `1.5px solid ${ACCENT}` : `1px solid ${T.border}`,
-                background: provider===option.id ? ACCENT+"15" : T.surface2,
-                color: provider===option.id ? ACCENT : T.text2, cursor:"pointer"
-              }}>
-                {option.label}
-              </button>
-            ))}
+            Connect Gmail API to send real emails. Get credentials from Google Cloud Console.
           </div>
 
           <div style={{ display:"grid",gridTemplateColumns:"1fr 1fr",gap:14,marginBottom:14 }}>
-            <Field T={T} label="Email Address" value={emailUser} onChange={e=>setEmailUser(e.target.value)} placeholder="you@example.com"/>
-            <Field T={T} label="Password / App Password" value={emailPass} onChange={e=>setEmailPass(e.target.value)} placeholder="Email password or app password" type="password"/>
+            <Field T={T} label="Client ID" value={gmailClientId} onChange={e=>setGmailClientId(e.target.value)} placeholder="Your Google Client ID"/>
+            <Field T={T} label="Client Secret" value={gmailClientSecret} onChange={e=>setGmailClientSecret(e.target.value)} placeholder="Your Google Client Secret" type="password"/>
           </div>
 
-          {provider === "smtp" && (
-            <div style={{ display:"grid",gridTemplateColumns:"1fr 1fr",gap:14,marginBottom:14 }}>
-              <Field T={T} label="SMTP Host" value={smtpHost} onChange={e=>setSmtpHost(e.target.value)} placeholder="smtp.example.com"/>
-              <Field T={T} label="SMTP Port" value={smtpPort} onChange={e=>setSmtpPort(e.target.value)} placeholder="587" type="number"/>
-            </div>
-          )}
-
-          {provider === "smtp" && (
-            <div style={{ display:"flex",alignItems:"center",gap:10,marginBottom:14 }}>
-              <label style={{ fontSize:11,fontWeight:700,color:T.text2,letterSpacing:0.5 }}>Secure (TLS/SSL)</label>
-              <button onClick={()=>setSmtpSecure(s=>!s)} style={{
-                width:40,height:22,borderRadius:11,border:"none",cursor:"pointer",
-                background:smtpSecure ? ACCENT : T.border, position:"relative",flexShrink:0
-              }}>
-                <div style={{ width:16,height:16,borderRadius:"50%",background:"white",
-                  position:"absolute",top:3,left:smtpSecure?21:3,transition:"left 0.2s" }}/>
-              </button>
-              <span style={{ fontSize:12,color:T.text2 }}>{smtpSecure ? "TLS/SSL" : "Plain"}</span>
-            </div>
-          )}
+          <div style={{ display:"grid",gridTemplateColumns:"1fr 1fr",gap:14,marginBottom:14 }}>
+            <Field T={T} label="Refresh Token" value={gmailRefreshToken} onChange={e=>setGmailRefreshToken(e.target.value)} placeholder="Your refresh token" type="password"/>
+            <Field T={T} label="Your Gmail Address" value={gmailUserEmail} onChange={e=>setGmailUserEmail(e.target.value)} placeholder="your@gmail.com"/>
+          </div>
 
           <div style={{ display:"flex",gap:10,flexWrap:"wrap",alignItems:"center" }}>
-            <Btn primary onClick={connectEmail} loading={connectLoading} disabled={!emailUser||!emailPass || (provider === "smtp" && (!smtpHost||!smtpPort))}>Connect</Btn>
+            <Btn primary onClick={connectEmail} loading={connectLoading} disabled={!gmailClientId||!gmailClientSecret||!gmailRefreshToken||!gmailUserEmail}>Connect Gmail</Btn>
             <Btn danger onClick={disconnectEmail} loading={disconnectLoading} disabled={!emailSetup?.connected}>Disconnect</Btn>
             <span style={{ fontSize:12,color:T.text3 }}>
               Status: {emailSetup?.connected ? "Connected" : "Not connected"}
-              {emailSetup?.connected && emailSetup.config ? ` — ${emailSetup.config.user}` : ""}
+              {emailSetup?.connected && emailSetup.config ? ` — ${emailSetup.config.userEmail}` : ""}
             </span>
           </div>
 
